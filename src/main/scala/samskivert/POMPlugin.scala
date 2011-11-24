@@ -39,6 +39,7 @@ object POMPlugin extends Plugin
   /** Converts a Maven dependency to an Ivy dependency. */
   def toIvyDepend (depend :Dependency) = {
     // TODO: handle type, classifier, scope, etc.
-    depend.groupId % depend.artifactId % depend.version
+    val bare = depend.groupId % depend.artifactId % depend.version
+    if (depend.scope == "test") bare % "test" else bare
   }
 }
