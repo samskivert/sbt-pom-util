@@ -1,9 +1,9 @@
-# sbt-pom-plugin
+# sbt-pom-util
 
-This [SBT] plugin allows one to extract project metadata from POM files. This
-is useful for situations where one must maintain SBT and Maven builds in
-parallel for the same project. Often one uses Maven on their automated build
-server, and SBT for local development.
+This [SBT] library (it's not really a plugin) allows one to extract project
+metadata from POM files. This is useful for situations where one must maintain
+SBT and Maven builds in parallel for the same project. Often one uses Maven on
+their automated build server, and SBT for local development.
 
 The plugin is very unsophisticated. If your build is complex and makes use of
 myriad Maven plugins, you're not going to find the solution to your problems in
@@ -20,15 +20,11 @@ right place.
 Regardless of which way you use it, you must create a `project/plugins.sbt`
 file that contains the follow:
 
-    addSbtPlugin("com.samskivert" % "sbt-pom-plugin" % "1.0-SNAPSHOT")
-
-Note that this plugin is not published to a shared repository yet, so you need
-to check out the code and `sbt publish-local` it (and you'll need to check out
-[pom-util] and do the same before installing this plugin).
+    libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.1"
 
 To use this for a single module project, do the following:
 
-    seq(samskivert.POMPlugin.pomToSettings("pom.xml") :_*)
+    seq(samskivert.POMUtil.pomToSettings("pom.xml") :_*)
 
 For a multi-module project, things are a bit trickier, but that is because the
 plugin will automatically set up inter-project dependencies so that your
@@ -62,14 +58,14 @@ dependencies.
 
 It's not complicated to extend the internals of the plugin to handle more
 metadata or to handle other dependency properties, I just haven't needed them
-yet. Fork sbt-pom-plugin and/or [pom-util] and send a pull request if there's
+yet. Fork sbt-pom-util and/or [pom-util] and send a pull request if there's
 something you need.
 
 ## License
 
-sbt-pom-plugin is released under the New BSD License, which can be found in the
+sbt-pom-util is released under the New BSD License, which can be found in the
 [LICENSE] file.
 
 [SBT]: https://github.com/harrah/xsbt/wiki
 [pom-util]: https://github.com/samskivert/pom-util
-[LICENSE]: https://github.com/samskivert/sbt-pom-plugin/blob/master/LICENSE
+[LICENSE]: https://github.com/samskivert/sbt-pom-util/blob/master/LICENSE
