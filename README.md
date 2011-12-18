@@ -30,6 +30,9 @@ file that contains the follow:
 
     libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.1"
 
+The library is published to Maven Central, so you will not need to add any
+custom resolvers.
+
 To use this for a single module project, do the following:
 
     seq(samskivert.POMUtil.pomToSettings("pom.xml") :_*)
