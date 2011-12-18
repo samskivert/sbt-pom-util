@@ -10,6 +10,14 @@ myriad Maven plugins, you're not going to find the solution to your problems in
 this plugin. However, if you just use your POM to specify project metadata and
 enumerate your project dependencies, then you may just be in luck.
 
+## Requirements
+
+This library was built against [SBT] 0.11.2 and Scala 2.9.1. However, it should
+work with newer versions of Scala in the 2.9 series and most likely newer
+versions of SBT in the 0.11 series (and possibly later). It does not integrate
+tightly into SBT's internals, and thus I have not embedded an SBT (nor Scala)
+version into the artifact name.
+
 ## Usage
 
 There are two ways to use this plugin. In single module mode, and in
