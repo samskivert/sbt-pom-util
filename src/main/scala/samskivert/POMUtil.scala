@@ -14,7 +14,7 @@ import pomutil.{POM, Dependency}
 /**
  * Makes Maven project metadata usable from SBT.
  */
-object POMPlugin extends Plugin
+object POMUtil extends Plugin
 {
   /** Reads SBT settings from the POM file at the specified path. */
   def pomToSettings (path :String) :Seq[Setting[_]] = pomToSettings(new File(path))

@@ -40,9 +40,9 @@ class ProjectBuilder (path :String)
     val pom = _modules.getOrElse(name, sys.error("No sub-module POM in " + name + "."))
 
     val (sibdeps, odeps) = pom.depends.partition(isSibling)
-    val psettings = Defaults.defaultSettings ++ POMPlugin.pomToSettings(pom) ++ globalSettings ++
+    val psettings = Defaults.defaultSettings ++ POMUtil.pomToSettings(pom) ++ globalSettings ++
         projectSettings(name) ++ Seq(
-          libraryDependencies ++= odeps.map(POMPlugin.toIvyDepend)
+          libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
     )
     val proj = Project(name, file(name), settings = psettings)
     // finally apply all of the sibling dependencies
