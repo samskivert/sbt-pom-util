@@ -37,23 +37,27 @@ class ProjectBuilder (path :String)
 
   /** Creates an SBT project for the specified sub-module. */
   def apply (name :String) :Project = _projects.getOrElseUpdate(name, {
-    val pom = _modules.getOrElse(name, sys.error("No sub-module POM in " + name + "."))
+    val (pom, pomFile) = _modules.getOrElse(name, sys.error("No sub-module POM in " + name + "."))
 
     val (sibdeps, odeps) = pom.depends.partition(isSibling)
     val psettings = Defaults.defaultSettings ++ POMUtil.pomToSettings(pom) ++ globalSettings ++
         projectSettings(name) ++ Seq(
           libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
     )
-    val proj = Project(name, file(name), settings = psettings)
+    val proj = Project(name, pomFile.getParentFile, settings = psettings)
     // finally apply all of the sibling dependencies
     (proj /: sibdeps.map(_.id).map(_depToModule))((p, dname) => p dependsOn apply(dname))
   })
 
-  private def resolveSubPOM (name :String) = {
-    val pomFile = new File(new File(name), "pom.xml")
-    POM.fromFile(pomFile) map(p => Some(name -> p)) getOrElse {
-      System.err.println("Failed to read sub-module POM: " + pomFile)
-      None
+  private def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
+    val pathComps = ("pom.xml" :: name :: prefix) reverse
+    val pomFile = pathComps.tail.foldLeft(new File(pathComps.head))(new File(_, _))
+    POM.fromFile(pomFile) match {
+      case None => System.err.println("Failed to read sub-module POM: " + pomFile) ; List()
+      case Some(p) => {
+        val pomId = (name :: prefix).reverse.mkString("-")
+        (pomId, (p, pomFile)) +: p.modules.flatMap(resolveSubPOM(name :: prefix))
+      }
     }
   }
 
@@ -62,8 +66,8 @@ class ProjectBuilder (path :String)
   private val _pom = POM.fromFile(new File(path)).getOrElse(
     sys.error("Unable to load POM from " + path))
   private val (_modules, _depToModule) = {
-    val data = _pom.modules.flatMap(resolveSubPOM)
-    (data.toMap, data.map(t => (t._2.id, t._1)).toMap)
+    val data = _pom.modules.flatMap(resolveSubPOM(List()))
+    (data.toMap, data.map(t => (t._2._1.id, t._1)).toMap)
   }
   private val _projects = scala.collection.mutable.Map[String,Project]()
 }
