@@ -28,7 +28,7 @@ right place.
 Regardless of which way you use it, you must create a `project/plugins.sbt`
 file that contains the follow:
 
-    libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.1"
+    libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.2"
 
 The library is published to Maven Central, so you will not need to add any
 custom resolvers.
