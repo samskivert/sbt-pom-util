@@ -56,7 +56,7 @@ class ProjectBuilder (path :String)
       case None => System.err.println("Failed to read sub-module POM: " + pomFile) ; List()
       case Some(p) => {
         val pomId = (name :: prefix).reverse.mkString("-")
-        (pomId, (p, pomFile)) +: p.modules.flatMap(resolveSubPOM(name :: prefix))
+        (pomId, (p, pomFile)) +: p.allModules.flatMap(resolveSubPOM(name :: prefix))
       }
     }
   }
@@ -66,7 +66,7 @@ class ProjectBuilder (path :String)
   private val _pom = POM.fromFile(new File(path)).getOrElse(
     sys.error("Unable to load POM from " + path))
   private val (_modules, _depToModule) = {
-    val data = _pom.modules.flatMap(resolveSubPOM(List()))
+    val data = _pom.allModules.flatMap(resolveSubPOM(List()))
     (data.toMap, data.map(t => (t._2._1.id, t._1)).toMap)
   }
   private val _projects = scala.collection.mutable.Map[String,Project]()
