@@ -32,8 +32,9 @@ class ProjectBuilder (path :String)
   /** Defines extra settings that are applied to all projects. */
   def globalSettings :Seq[Setting[_]] = Nil
 
-  /** Defines extra settings that are to the project named `name`. */
-  def projectSettings (name :String) :Seq[Setting[_]] = Nil
+  /** Defines extra settings for the module named `name`.
+   * @param pom the POM for the module in question. */
+  def projectSettings (name :String, pom :POM) :Seq[Setting[_]] = Nil
 
   /** Creates an SBT project for the specified sub-module. */
   def apply (name :String) :Project = _projects.getOrElseUpdate(name, {
@@ -41,9 +42,9 @@ class ProjectBuilder (path :String)
 
     val (sibdeps, odeps) = pom.depends.partition(isSibling)
     val psettings = Defaults.defaultSettings ++ POMUtil.pomToSettings(pom) ++ globalSettings ++
-        projectSettings(name) ++ Seq(
-          libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
-    )
+      projectSettings(name, pom) ++ Seq(
+        libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
+      )
     val proj = Project(name, pomFile.getParentFile, settings = psettings)
     // finally apply all of the sibling dependencies
     (proj /: sibdeps.map(_.id).map(_depToModule))((p, dname) => p dependsOn apply(dname))
