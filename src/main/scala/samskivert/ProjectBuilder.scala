@@ -47,7 +47,9 @@ class ProjectBuilder (path :String)
       )
     val proj = Project(name, pomFile.getParentFile, settings = psettings)
     // finally apply all of the sibling dependencies
-    (proj /: sibdeps.map(_.id).map(_depToModule))((p, dname) => p dependsOn apply(dname))
+    (proj /: sibdeps) {
+      case (p, dep) => p dependsOn(apply(_depToModule(dep.id)) % (dep.scope + "->compile"))
+    }
   })
 
   private def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
