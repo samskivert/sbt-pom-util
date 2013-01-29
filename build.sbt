@@ -4,14 +4,14 @@ name := "sbt-pom-util"
 
 version := "0.4-SNAPSHOT"
 
-scalaVersion := "2.9.1"
+scalaVersion := "2.10.0"
 
 crossPaths := false
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
-  "org.scala-tools.sbt" %% "sbt" % "0.11.2" % "provided",
+  "org.scala-sbt" % "sbt" % "0.12.2" % "provided",
   "com.samskivert" % "pom-util" % "0.3"
 )
 
