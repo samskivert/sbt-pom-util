@@ -38,12 +38,21 @@ object POMUtil extends Plugin
 
   /** Converts a Maven dependency to an Ivy dependency. */
   def toIvyDepend (depend :Dependency) = {
-    // TODO: handle type, classifier, scope, etc.
+    // TODO: handle type, etc.
     val bare = depend.groupId % depend.artifactId % depend.version
-    depend.scope match {
+    val scoped = depend.scope match {
       case "test" => bare % "test"
       case "provided" => bare % "provided"
+      // TODO: other scopes?
       case _ => bare
     }
+    scoped
+    // TODO: none of these seem to do quite the right thing
+    // val classified = depend.classifier match {
+    //   case Some("sources") => scoped % "compile->sources"
+    //   case Some(cfier) => scoped classifier cfier // TODO: this is probably wonky
+    //   case _ => scoped
+    // }
+    // classified
   }
 }
