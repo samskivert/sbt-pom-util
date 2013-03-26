@@ -5,6 +5,7 @@
 package samskivert
 
 import java.io.File
+import scala.collection.mutable.ListBuffer
 
 import sbt._
 import sbt.Keys._
@@ -26,14 +27,17 @@ object POMUtil extends Plugin
   /** Reads SBT settings from the supplied POM.
    * @param excludeDepends if true, dependency configuration omitted from settings. */
   def pomToSettings (pom :POM, excludeDepends :Boolean = false) :Seq[Setting[_]] = {
-    val meta = Seq(
+    val meta = ListBuffer[Setting[_]](
       organization := pom.groupId,
       name := pom.artifactId,
       version := pom.version
-      // TODO: add support for various standard build settings
     )
-    if (excludeDepends) meta
-    else meta ++ Seq(libraryDependencies ++= pom.depends.map(toIvyDepend))
+    // if the POM defines a scala.version property, use it
+    pom.getAttr("scala.version") foreach { v => meta += (scalaVersion := v) }
+    // if we're not excluding dependencies, tack those on
+    if (!excludeDepends) meta += (libraryDependencies ++= pom.depends.map(toIvyDepend))
+    // finally convert back to the blissful world of immutability
+    meta.toSeq
   }
 
   /** Converts a Maven dependency to an Ivy dependency. */
