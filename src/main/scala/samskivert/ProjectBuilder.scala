@@ -41,16 +41,22 @@ class ProjectBuilder (path :String)
     val (pom, pomFile) = _modules.getOrElse(name, sys.error("No sub-module POM in " + name + "."))
 
     val (sibdeps, odeps) = pom.depends.partition(isSibling)
-    val psettings = Defaults.defaultSettings ++ POMUtil.pomToSettings(pom, true) ++ globalSettings ++
-      projectSettings(name, pom) ++ Seq(
-        libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
-      )
+    val psettings = baseSettings(pom) ++ projectSettings(name, pom) ++ Seq(
+      libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
+    )
     val proj = Project(name, pomFile.getParentFile, settings = psettings)
     // finally apply all of the sibling dependencies
     (proj /: sibdeps) {
       case (p, dep) => p dependsOn(apply(_depToModule(dep.id)) % (dep.scope + "->compile"))
     }
   })
+
+  /** Creates a root project with settings from the top-level POM. You must manually aggregate the
+    * sub-modules to this project because SBT is retarded and won't let that be done for you. */
+  def root = Project(_pom.artifactId, file("."), settings = baseSettings(_pom))
+
+  private def baseSettings (pom :POM) =
+    Defaults.defaultSettings ++ POMUtil.pomToSettings(pom, true) ++ globalSettings
 
   private def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
     val pathComps = ("pom.xml" :: name :: prefix) reverse
