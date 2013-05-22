@@ -50,13 +50,12 @@ object POMUtil extends Plugin
       // TODO: other scopes?
       case _ => bare
     }
-    scoped
     // TODO: none of these seem to do quite the right thing
-    // val classified = depend.classifier match {
-    //   case Some("sources") => scoped % "compile->sources"
-    //   case Some(cfier) => scoped classifier cfier // TODO: this is probably wonky
-    //   case _ => scoped
-    // }
-    // classified
+    val classified = depend.classifier match {
+      case Some("sources") => scoped % "compile->sources"
+      case Some(cfier) => scoped classifier cfier // TODO: this is probably wonky
+      case _ => scoped
+    }
+    classified
   }
 }
