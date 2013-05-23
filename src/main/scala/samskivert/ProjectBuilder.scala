@@ -58,10 +58,6 @@ class ProjectBuilder (rootPom :File) {
     if (_depToModule.contains(depend.id)) ProjectRef(_root.toURI, _depToModule(depend.id))
     else _builders.find(_.isLocal(depend)).map(_.projectRef(depend)).get
 
-  // /** Returns the remote (URI-based) SBT project reference for the specified POM dependency. */
-  // private def remoteRef (depend :Dependency) =
-  //   ProjectRef(_pomFile.getParentFile.toURI, _depToModule(depend.id))
-
   /** Creates a root project with settings from the top-level POM which aggregates `modules`. */
   private def root (modules :Seq[String]) :Project = Project(
     _pom.artifactId, _root, settings = baseSettings(_pom)).
