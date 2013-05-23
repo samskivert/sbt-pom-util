@@ -12,7 +12,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
   "org.scala-sbt" % "sbt" % "0.12.2" % "provided",
-  "com.samskivert" % "pom-util" % "0.4"
+  "com.samskivert" %% "pom-util" % "0.5-SNAPSHOT"
 )
 
 //
