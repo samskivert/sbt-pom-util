@@ -30,32 +30,69 @@ follow:
 
 The library is published to Maven Central, so you will not need to add any custom resolvers.
 
+### Single module project
+
 To use this for a single module project, do the following:
 
     seq(samskivert.POMUtil.pomToSettings("pom.xml") :_*)
 
-For a multi-module project, things are a bit trickier, but that is because the plugin will
-automatically set up inter-project dependencies and a root module so that your modules properly
-depend on one another. Here's a simple example:
+### Multi-module project
 
-    object FooBuild extends Build {
-      val builder = new samskivert.ProjectBuilder("pom.xml") {
-        // optionally provide settings used by all module projects
-        override val globalSettings = Seq(...any SBT-specific settings...)
+For a multi-module project, the plugin will automatically set up inter-project dependencies and a
+root module so that your modules properly depend on one another. You'll have to use a `.scala`
+build file to make this work, but otherwise you just extend `MavenBuild` and everything is taken
+care of:
 
-        // optionally provide settings for individual module projects
-        override def projectSettings (name :String) = name match {
-          case "core" => Seq(...SBT-specific settings for core module...)
-          case "server" => Seq(...SBT-specific settings for server module...)
-          case _ => Nil // any other modules have no specific settings
-        }
+    object FooBuild extends MavenBuild {
+      // optionally provide settings used by all module projects
+      override val globalSettings = Seq(...any SBT-specific settings...)
+
+      // optionally provide settings for individual module projects
+      override def projectSettings (name :String) = name match {
+        case "core" => Seq(...SBT-specific settings for core module...)
+        case "server" => Seq(...SBT-specific settings for server module...)
+        case _ => Nil // any other modules have no specific settings
       }
 
-      // you can also optionally pass a profile name to projects and root to use all of the
-      // sub-modules defined in the supplied profile
-      override def projects = builder.projects
-      lazy val root = builder.root
+      // optionally specify which Maven profiles to consider "active"
+      override def profiles :Seq[String] = Seq()
     }
+
+### Workspace projects
+
+If you use the `MavenBuild` approach above, you can also create a `.workspace` file which specifies
+the path to other `sbt-pom-util`-enabled projects which should be integrated directly into your SBT
+build. The `.workspace` file just contains a list of paths (relative or absolute) to the other
+projects.
+
+This will cause any dependencies in your main project to resolve to modules in the workspace
+projects if their versions match (rather than resolving them to the artifact in the local Ivy
+repository).
+
+For example, you might have a directory structure like so:
+
+{{{
+/home/projects/foolib   # builds foocorp:foolib:1.3-SNAPSHOT
+/home/projects/barlib   # builds barcorp:barlib:1.1-SNAPSHOT
+/home/projects/magicapp # your main project
+}}}
+
+You can create a `.workspace` file in the `magicapp` directory with the following contents:
+
+{{{
+../foolib
+../barlib
+}}}
+
+Assuming `magicapp/pom.xml` contains dependencies on `foocorp:foolib:1.3-SNAPSHOT` and
+`barcorp:barlib:1.1-SNAPSHOT`, then those projects will be loaded directly into your SBT session
+when running SBT on `magicapp`. Rebuilding `magicapp` will automatically rebuild changed files in
+`foolib` or `barlib`.
+
+This is akin to having both projects in, for example, your Eclipse workspace, hence the name.
+
+Note also that if `foolib` or `barlib` also contains a `.workspace` file, that will be transitively
+applied and you will end up with yet more projects wired directly into your SBT session.
 
 ## Limitations
 

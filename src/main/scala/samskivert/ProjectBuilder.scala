@@ -5,85 +5,74 @@
 package samskivert
 
 import java.io.File
+import scala.io.Source
 
 import sbt._
 import sbt.Keys._
 
 import pomutil.{POM, Dependency}
 
-/** Handles multimodule projects. Sub-module interdependencies will automatically be wired up as
-  * SBT project dependencies. Other Maven dependencies will be mapped to Ivy dependencies.
-  *
-  * Instantiate ProjectBuilder with the top-level POM:
-  * {{{
-  * val builder = new ProjectBuilder("pom.xml") {
-  *   override def globalSettings = Seq(...)
-  *   override def projectSettings (name :String, pom :POM) = name match { .. }
-  * }
-  * override def projects = builder.projects // learn SBT about all the projects
-  * val root = builder.root // aggregates all submodules into a root project
-  * }}}
-  *
-  * The stock SBT settings will be automatically included.
-  */
-class ProjectBuilder (path :String)
-{
+/** Now an implementation detail, see [MavenBuild] for multi-module projects. */
+class ProjectBuilder (rootPom :File) {
+
   /** Defines extra settings that are applied to all projects. */
   def globalSettings :Seq[Setting[_]] = Nil
 
   /** Defines extra settings for the module named `name`.
    * @param pom the POM for the module in question. */
-  def projectSettings (name :String, pom :POM) :Seq[Setting[_]] = Nil
+  def moduleSettings (name :String, pom :POM) :Seq[Setting[_]] = Nil
 
-  /** Returns SBT projects for sub-modules in the default profile of our top-level POM. */
-  def projects :Seq[Project] = projects(_pom.modules)
-
-  /** Returns SBT projects for all sub-modules defined by the specified profile. */
-  def projects (profile :String) :Seq[Project] = projects(_pom.modules(profile))
-
-  /** Returns SBT projects for the specified sub-modules. */
-  def projects (modules :Seq[String]) :Seq[Project] = modules.map(apply)
-
-  /** Returns SBT projects for all sub-modules in all profiles in our POM. */
-  def projectsAll :Seq[Project] = projects(_pom.allModules)
-
-  /** Creates a root project which aggregates the modules in the default profile. */
-  def root :Project = root(_pom.modules)
-
-  /** Creates a root project which aggregates all the projects in the specified profile. */
-  def root (profile :String) :Project = root(_pom.modules(profile))
-
-  /** Creates a root project with settings from the top-level POM which aggregates the specified
-    * submodules. */
-  def root (modules :Seq[String]) :Project = Project(
-    _pom.artifactId, file("."), settings = baseSettings(_pom)).
-    aggregate(modules.map(LocalProject) :_*)
-
-  /** Creates a root project which aggregates all modules in all profiles. */
-  def rootAll :Project = root(_pom.modules)
+  /** Returns SBT projects for sub-modules in this project.
+    * @param profiles the Maven profiles to consider "active" when enumerating sub-modules.
+    * Pass `Seq("*")` to consider all profiles active. */
+  def projects (profiles :Seq[String]) :Seq[Project] = {
+    val modules = profiles match {
+      case Seq()    => _pom.modules
+      case Seq("*") => _pom.allModules
+      case ps       => ps.flatMap(_pom.modules).distinct
+    }
+    modules.map(apply) :+ root(modules)
+  }
 
   /** Creates an SBT project for the specified sub-module. You probably want to use `root` +
     * `projects` and have projects automatically created, but this is here for special needs. */
   def apply (name :String) :Project = {
     val (pom, pomFile) = _modules.getOrElse(name, sys.error("No sub-module POM in " + name + "."))
-
-    val (sibdeps, odeps) = pom.depends.partition(isSibling)
-    val psettings = baseSettings(pom) ++ projectSettings(name, pom) ++ Seq(
+    val (locdeps, odeps) = pom.depends.partition(isLocal)
+    val msettings = baseSettings(pom) ++ moduleSettings(name, pom) ++ Seq(
       libraryDependencies ++= odeps.map(POMUtil.toIvyDepend)
     )
-    val proj = Project(name, pomFile.getParentFile, settings = psettings)
-    // finally apply all of the sibling dependencies
-    (proj /: sibdeps) {
-      case (p, dep) => p dependsOn(LocalProject(_depToModule(dep.id)) % (dep.scope + "->compile"))
+    // create the project, and apply all of the sibling dependencies
+    (Project(name, pomFile.getParentFile, settings = msettings) /: locdeps) {
+      case (p, dep) => p dependsOn(projectRef(dep) % (dep.scope + "->compile"))
     }
   }
+
+  /** Returns true if the specified project is managed by this builder. */
+  private def isLocal (depend :Dependency) :Boolean =
+    _depToModule.contains(depend.id) || _builders.exists(_.isLocal(depend))
+
+  /** Returns the SBT project reference for the supplied POM dependency.
+    * Requires that `depend` has already been confirmed as local by `isLocal`. */
+  private def projectRef (depend :Dependency) :ProjectReference =
+    if (_depToModule.contains(depend.id)) ProjectRef(_root.toURI, _depToModule(depend.id))
+    else _builders.find(_.isLocal(depend)).map(_.projectRef(depend)).get
+
+  // /** Returns the remote (URI-based) SBT project reference for the specified POM dependency. */
+  // private def remoteRef (depend :Dependency) =
+  //   ProjectRef(_pomFile.getParentFile.toURI, _depToModule(depend.id))
+
+  /** Creates a root project with settings from the top-level POM which aggregates `modules`. */
+  private def root (modules :Seq[String]) :Project = Project(
+    _pom.artifactId, _root, settings = baseSettings(_pom)).
+    aggregate(modules.map(LocalProject) :_*)
 
   private def baseSettings (pom :POM) =
     Defaults.defaultSettings ++ POMUtil.pomToSettings(pom, true) ++ globalSettings
 
   private def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
     val pathComps = ("pom.xml" :: name :: prefix) reverse
-    val pomFile = pathComps.tail.foldLeft(new File(pathComps.head))(new File(_, _))
+    val pomFile = pathComps.foldLeft(_root)(new File(_, _))
     POM.fromFile(pomFile) match {
       case None => System.err.println("Failed to read sub-module POM: " + pomFile) ; List()
       case Some(p) => {
@@ -93,11 +82,23 @@ class ProjectBuilder (path :String)
     }
   }
 
-  private def isSibling (depend :Dependency) = _depToModule.contains(depend.id)
-
-  private val _pom = POM.fromFile(new File(path)).getOrElse(
-    sys.error("Unable to load POM from " + path))
+  private val _root = rootPom.getParentFile match {
+    case null => file(".")
+    case f => f
+  }
+  private val _pom = POM.fromFile(rootPom).getOrElse(sys.error("Unable to load POM from " + rootPom))
   private val _modules :Map[String, (POM,File)] = _pom.allModules.flatMap(
     resolveSubPOM(List())).toMap
   private val _depToModule :Map[String,String] = _modules.map(t => (t._2._1.id, t._1))
+
+  private val _builders :Seq[ProjectBuilder] = try {
+    val workFile = new File(_root, ".workspace")
+    if (!workFile.exists) Seq()
+    else Source.fromFile(workFile).getLines.toSeq.map(p => new File(p)).collect {
+      case root if (root.isDirectory) => new File(root, "pom.xml")
+      case root if (root.isFile) => root
+    }.map(root => new ProjectBuilder(root))
+  } catch {
+    case e :Throwable => e.printStackTrace(System.err) ; Seq()
+  }
 }
