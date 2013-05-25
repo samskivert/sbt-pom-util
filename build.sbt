@@ -2,7 +2,7 @@ organization := "com.samskivert"
 
 name := "sbt-pom-util"
 
-version := "0.5"
+version := "0.6-SNAPSHOT"
 
 scalaVersion := "2.9.2"
 
