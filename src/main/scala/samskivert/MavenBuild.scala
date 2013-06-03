@@ -26,11 +26,14 @@ class MavenBuild (pomFile :String) extends Build {
     * Return `Seq("*")` to ignore profiles and activate all modules in all profiles. */
   def profiles :Seq[String] = Seq()
 
-	override def projectDefinitions (base :File) = {
+  override def projectDefinitions (base :File) = projects(
     new ProjectBuilder(new File(base, pomFile)) {
       override def globalSettings = MavenBuild.this.globalSettings
       override def moduleSettings (name :String, pom :POM) =
         MavenBuild.this.moduleSettings(name, pom)
-    }.projects(profiles)
-  }
+    })
+
+  /** Returns the projects (modules in Maven parlance) used by this build. Default impl asks
+    * `builder` for all modules in the profiles defined by [profiles]. */
+  protected def projects (builder :ProjectBuilder) = builder.projects(profiles)
 }
