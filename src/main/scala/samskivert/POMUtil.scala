@@ -40,6 +40,39 @@ object POMUtil extends Plugin {
     meta.toSeq
   }
 
+  /** Resolves all modules (in all profiles) using the supplied POM as the root. Loads and resolves
+    * the POMs for all modules and recurses until the entire tree rooted at `pom` is resolved.
+    * @return a map from fully-qualified module name (e.g. grandparent-parent-child) to the module's
+    * parsed POM and POM file.
+    */
+  def resolveModules (pom :POM) :Map[String,(POM,File)] = {
+    val root = pom.file.get.getParentFile
+    def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
+      val pathComps = ("pom.xml" :: name :: prefix) reverse
+      val pomFile = pathComps.foldLeft(root)(new File(_, _))
+      POM.fromFile(pomFile) match {
+        case None => System.err.println("Failed to read sub-module POM: " + pomFile) ; List()
+        case Some(p) => {
+          val pomId = (name :: prefix).reverse.mkString("-")
+          (pomId, (p, pomFile)) +: p.allModules.flatMap(resolveSubPOM(name :: prefix))
+        }
+      }
+    }
+    pom.allModules.flatMap(resolveSubPOM(List())).toMap
+  }
+
+  /** Returns a list of all fully qualified modules in the supplied multi-module project tree. `mf`
+    * is used to expand the modules of a given POM and can use a desired set of profiles. */
+  def expandModules (resolved :Map[String,(POM,File)], pom :POM,
+                     mf :POM => Seq[String]) :Seq[String] = {
+    def expand (fqMod :String) :Seq[String] = {
+      val pom = resolved(fqMod)._1
+      if (pom.packaging.toLowerCase == "pom") mf(pom).flatMap(m => expand(fqMod + "-" + m))
+      else Seq(fqMod)
+    }
+    mf(pom).flatMap(expand)
+  }
+
   /** Converts a Maven dependency to an Ivy dependency. */
   def toIvyDepend (depend :Dependency) = {
     // TODO: handle type, etc.

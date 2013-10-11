@@ -27,9 +27,9 @@ class ProjectBuilder (rootPom :File) {
     * Pass `Seq("*")` to consider all profiles active. */
   def projects (profiles :Seq[String]) :Seq[Project] = {
     val modules = profiles match {
-      case Seq()    => _pom.modules
-      case Seq("*") => _pom.allModules
-      case ps       => ps.flatMap(_pom.modules).distinct
+      case Seq()    => POMUtil.expandModules(_modules, _pom, _.modules)
+      case Seq("*") => POMUtil.expandModules(_modules, _pom, _.allModules)
+      case ps       => POMUtil.expandModules(_modules, _pom, p => ps.flatMap(p.modules).distinct)
     }
     modules.map(apply) :+ root(modules)
   }
@@ -66,25 +66,12 @@ class ProjectBuilder (rootPom :File) {
   private def baseSettings (pom :POM) =
     Defaults.defaultSettings ++ POMUtil.pomToSettings(pom, true) ++ globalSettings
 
-  private def resolveSubPOM (prefix :List[String])(name :String) :Seq[(String,(POM,File))] = {
-    val pathComps = ("pom.xml" :: name :: prefix) reverse
-    val pomFile = pathComps.foldLeft(_root)(new File(_, _))
-    POM.fromFile(pomFile) match {
-      case None => System.err.println("Failed to read sub-module POM: " + pomFile) ; List()
-      case Some(p) => {
-        val pomId = (name :: prefix).reverse.mkString("-")
-        (pomId, (p, pomFile)) +: p.allModules.flatMap(resolveSubPOM(name :: prefix))
-      }
-    }
-  }
-
   private val _root = rootPom.getParentFile match {
     case null => file(".")
     case f => f
   }
   private val _pom = POM.fromFile(rootPom).getOrElse(sys.error("Unable to load POM from " + rootPom))
-  private val _modules :Map[String, (POM,File)] = _pom.allModules.flatMap(
-    resolveSubPOM(List())).toMap
+  private val _modules :Map[String, (POM,File)] = POMUtil.resolveModules(_pom)
   private val _depToModule :Map[String,String] = _modules.map(t => (t._2._1.id, t._1))
 
   private val _builders :Seq[ProjectBuilder] = try {

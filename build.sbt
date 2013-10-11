@@ -12,7 +12,9 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
   "org.scala-sbt" % "sbt" % "0.12.2" % "provided",
-  "com.samskivert" %% "pom-util" % "0.5"
+  "com.samskivert" %% "pom-util" % "0.6-SNAPSHOT",
+  "junit" % "junit" % "4.10" % "test",
+  "com.novocode" % "junit-interface" % "0.7" % "test->default"
 )
 
 //
