@@ -4,14 +4,14 @@ name := "sbt-pom-util"
 
 version := "0.6-SNAPSHOT"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.3"
 
 crossPaths := false
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
-  "org.scala-sbt" % "sbt" % "0.12.2" % "provided",
+  "org.scala-sbt" % "sbt" % "0.13.0" % "provided",
   "com.samskivert" %% "pom-util" % "0.6-SNAPSHOT",
   "junit" % "junit" % "4.10" % "test",
   "com.novocode" % "junit-interface" % "0.7" % "test->default"
