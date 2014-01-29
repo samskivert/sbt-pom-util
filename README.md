@@ -12,10 +12,8 @@ in luck.
 
 ## Requirements
 
-This library was built against [SBT] 0.12.2 and Scala 2.9.2. However, it should work with newer
-versions of Scala in the 2.9 series and maybe even newer versions of SBT in the 0.12 series. It
-does not integrate tightly into SBT's internals, and thus I have not embedded an SBT (nor Scala)
-version into the artifact name.
+This library was built against [SBT] 0.13 and Scala 2.10. It does not integrate tightly into SBT's
+internals, and thus I have not embedded an SBT version into the artifact name.
 
 ## Usage
 
@@ -26,7 +24,7 @@ your SBT build in the right place.
 Regardless of which way you use it, you must create a `project/plugins.sbt` file that contains the
 follow:
 
-    libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.4"
+    libraryDependencies += "com.samskivert" % "sbt-pom-util" % "0.6"
 
 The library is published to Maven Central, so you will not need to add any custom resolvers.
 
