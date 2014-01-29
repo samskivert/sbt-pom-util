@@ -2,7 +2,7 @@ organization := "com.samskivert"
 
 name := "sbt-pom-util"
 
-version := "0.6-SNAPSHOT"
+version := "0.7-SNAPSHOT"
 
 scalaVersion := "2.10.3"
 
@@ -12,7 +12,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
   "org.scala-sbt" % "sbt" % "0.13.0" % "provided",
-  "com.samskivert" %% "pom-util" % "0.6-SNAPSHOT",
+  "com.samskivert" %% "pom-util" % "0.6",
   "junit" % "junit" % "4.10" % "test",
   "com.novocode" % "junit-interface" % "0.7" % "test->default"
 )
