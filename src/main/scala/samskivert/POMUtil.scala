@@ -35,7 +35,13 @@ object POMUtil extends Plugin {
     // if the POM defines a scala.version property, use it
     pom.getAttr("scala.version") foreach { v => meta += (scalaVersion := v) }
     // if we're not excluding dependencies, tack those on
-    if (!excludeDepends) meta += (libraryDependencies ++= pom.depends.map(toIvyDepend))
+    if (!excludeDepends) {
+      val (plainDeps, sysDeps) = pom.depends.partition(_.scope != "system")
+      meta += (libraryDependencies ++= plainDeps.map(toIvyDepend))
+      sysDeps flatMap(_.systemPath) foreach { jar =>
+        meta += (unmanagedJars in Compile += Attributed.blank(file(jar)))
+      }
+    }
     // finally convert back to the blissful world of immutability
     meta.toSeq
   }
