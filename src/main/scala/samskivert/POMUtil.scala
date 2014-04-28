@@ -33,7 +33,7 @@ object POMUtil extends Plugin {
       version := pom.version
     )
     // if the POM defines a scala.version property, use it
-    pom.getAttr("scala.version") foreach { v => meta += (scalaVersion := v) }
+    pom.getAttr("scala.version") foreach { v => meta += (scalaVersion in ThisBuild := v) }
     // if we're not excluding dependencies, tack those on
     if (!excludeDepends) {
       val (plainDeps, sysDeps) = pom.depends.partition(_.scope != "system")
